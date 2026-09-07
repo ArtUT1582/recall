@@ -12,7 +12,7 @@
 
 
 > Claude Code starts every session cold. Recall keeps a local log of your
-> sessions and condenses it into a resume-ready summary — **entirely on your
+> sessions and condenses it into a resume-ready summary **entirely on your
 > machine**. No API key, no external model, nothing sent anywhere. It's built for
 > people running Claude Code locally on a subscription: the only AI in the loop is
 > Claude Code itself; the summarization is done by a classical Python summarizer.
