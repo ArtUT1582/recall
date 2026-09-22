@@ -130,15 +130,56 @@ def _facts_events(cwd, transcript_path, located_events):
     return located_events
 
 
+# history.md accumulates EVERY session for the project under "## Session <id> — <when>"
+# headers. Summarizing all of it made context.md describe the project's whole past
+# instead of the session being saved: Goal, Files and Commands came from this
+# transcript while Summary and Next steps came from unrelated older threads, which
+# reads as this session's state and is not. On a long-lived project that is dozens
+# of sessions and tens of thousands of lines of drift.
+_SESSION_HEADER = re.compile(r"^## Session ([0-9a-f]+) .*$", re.MULTILINE)
+
+
+def _session_slice(history_text, transcript_path):
+    """The current session's portion of history.md.
+
+    Matched on the transcript's id, so the right block is used even if a parallel
+    session has appended after it. Falls back to the LAST block when this session
+    is not in the file yet (capture lags the save), and to the whole text when
+    there are no session headers at all — one session's worth either way.
+    """
+    heads = list(_SESSION_HEADER.finditer(history_text))
+    if not heads:
+        return history_text
+    sid = os.path.basename(transcript_path or "").split(".")[0]
+    if sid:
+        for h in heads:
+            if sid.startswith(h.group(1)):
+                return history_text[h.end():]
+    return history_text[heads[-1].end():]
+
+
 def build(cwd, cfg, transcript_path):
     located = parse_transcript.parse(transcript_path)
     events = _facts_events(cwd, transcript_path, located)
 
-    # Summarize the captured history if present (it's what the user expects to be
-    # condensed); otherwise summarize the transcript prose directly.
-    history_text = read_text(history_path(cwd, cfg))
-    corpus = _clean_for_summary(history_text) if history_text else \
-        parse_transcript.prose(events, cfg["max_input_chars"])
+    # Summarize THIS SESSION'S OWN TRANSCRIPT.
+    #
+    # history.md used to be preferred here, on the reasoning that the captured
+    # history is what the user expects condensed. It is shared mutable state: when
+    # several sessions run in one project folder at once they all append to the one
+    # file, and a session that has not written its own header lands inside another
+    # session's block. So neither the whole file nor a per-header slice of it is
+    # reliably THIS session, and the summary drifted into unrelated work while Goal
+    # and Files stayed correct — the worst of both, because it reads as current
+    # state.
+    #
+    # The transcript is per-session by construction. history.md stays as the
+    # fallback for a transcript that yields no prose, sliced to one block.
+    corpus = parse_transcript.prose(events, cfg["max_input_chars"])
+    if not corpus.strip():
+        history_text = read_text(history_path(cwd, cfg))
+        if history_text:
+            corpus = _clean_for_summary(_session_slice(history_text, transcript_path))
     corpus = corpus[-cfg["max_input_chars"]:]
     summary = summarizer.summarize(corpus, cfg["summary_sentences"])
 
