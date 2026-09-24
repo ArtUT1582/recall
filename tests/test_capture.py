@@ -107,7 +107,7 @@ def test_parallel_sessions_log_to_separate_files(tmp_path):
     assert "invoice report" in a and "A adds totals" in a and "payroll" not in a
     assert "payroll import" in b and "invoice" not in b
     assert a.count("## Session") == 1
-    assert not os.path.exists(common.history_path(cwd, cfg)), "shared history.md must not be written"
+    assert not os.path.exists(common.history_path(cwd, cfg)), "shared history.md was written"
 
 
 def test_session_id_cannot_escape_history_dir(tmp_path):

@@ -25,9 +25,9 @@ from common import (  # noqa: E402
     history_path,
     locate_transcript,
     project_name,
-    session_context_path,
     project_transcripts,
     read_text,
+    session_context_path,
     write_text,
 )
 from config import load_config  # noqa: E402

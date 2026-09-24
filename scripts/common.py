@@ -265,7 +265,8 @@ def locate_transcript(cwd, session_id=None):
     projects = Path.home() / ".claude" / "projects"
     if not projects.is_dir():
         return None
-    sid = re.sub(r"[^0-9A-Za-z-]", "", str(session_id or os.environ.get("CLAUDE_CODE_SESSION_ID") or ""))
+    raw = session_id or os.environ.get("CLAUDE_CODE_SESSION_ID") or ""
+    sid = re.sub(r"[^0-9A-Za-z-]", "", str(raw))
     if sid:
         for name in _candidates(cwd):
             hit = projects / name / (sid + ".jsonl")

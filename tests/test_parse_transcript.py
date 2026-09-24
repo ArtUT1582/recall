@@ -30,7 +30,10 @@ def test_tool_event_tolerates_non_dict_input():
 
 def test_goal_skips_image_only_messages():
     img = r"[Image: source: C:\Users\x\AppData\Local\Temp\claude\s\images\1.png]"
-    ev = lambda t: {"role": "user", "text": t}
+
+    def ev(t):
+        return {"role": "user", "text": t}
+
     assert p.first_user_goal([ev(img), ev("draft a reply to Derek")]) == "draft a reply to Derek"
     assert p.first_user_goal([ev(img + "\n\nwhy is this late?")]) == "why is this late?"
     assert p.first_user_goal([ev(img), ev(img)]) == ""
