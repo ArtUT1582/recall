@@ -25,6 +25,7 @@ from common import (  # noqa: E402
     history_path,
     locate_transcript,
     project_name,
+    session_context_path,
     project_transcripts,
     read_text,
     write_text,
@@ -139,6 +140,10 @@ def _facts_events(cwd, transcript_path, located_events):
 _SESSION_HEADER = re.compile(r"^## Session ([0-9a-f]+) .*$", re.MULTILINE)
 
 
+def _sid_of(transcript_path):
+    return os.path.basename(transcript_path or "").split(".")[0]
+
+
 def _session_slice(history_text, transcript_path):
     """The current session's portion of history.md.
 
@@ -177,9 +182,13 @@ def build(cwd, cfg, transcript_path):
     # fallback for a transcript that yields no prose, sliced to one block.
     corpus = parse_transcript.prose(events, cfg["max_input_chars"])
     if not corpus.strip():
-        history_text = read_text(history_path(cwd, cfg))
-        if history_text:
-            corpus = _clean_for_summary(_session_slice(history_text, transcript_path))
+        own = read_text(history_path(cwd, cfg, _sid_of(transcript_path)))
+        if own:
+            corpus = _clean_for_summary(own)
+        else:   # a session captured before per-session logs existed
+            history_text = read_text(history_path(cwd, cfg))
+            if history_text:
+                corpus = _clean_for_summary(_session_slice(history_text, transcript_path))
     corpus = corpus[-cfg["max_input_chars"]:]
     summary = summarizer.summarize(corpus, cfg["summary_sentences"])
 
@@ -240,9 +249,13 @@ def run(cwd, transcript_path=None, quiet=False):
         return 1
     path = context_path(cwd, cfg)
     write_text(path, md)
+    own = session_context_path(cwd, cfg, _sid_of(transcript_path))
+    if own:
+        os.makedirs(os.path.dirname(own), exist_ok=True)
+        write_text(own, md)
 
     if not quiet:
-        print(f"Recall: wrote {path}")
+        print(f"Recall: wrote {path}" + (f" (and {own})" if own else ""))
         print(f"Recall: summarizer = {summarizer.backend_name()}")
     return 0
 
